@@ -1,5 +1,5 @@
 // TripListScreen.kt
-// UPDATE this file to detect and display the current trip.
+// UPDATE this file to remove the outdated parameter and Scaffold.
 
 package com.lbjllc.travelbook.ui.screens
 
@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
@@ -32,10 +31,10 @@ import java.util.*
 @Composable
 fun TripListScreen(
     trips: List<Trip>,
-    onNavigateToCreateTrip: () -> Unit,
+    // onNavigateToCreateTrip is removed
     onNavigateToTripDashboard: (String) -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToLiveTrip: (String) -> Unit // <-- NEW
+    onNavigateToLiveTrip: (String) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf("Upcoming") }
 
@@ -63,7 +62,7 @@ fun TripListScreen(
                     }
                 }
             } catch (e: Exception) {
-                upcoming.add(trip) // Default to upcoming if date is malformed
+                upcoming.add(trip)
             }
         }
         Triple(current, upcoming.sortedBy { it.startDate }, past.sortedByDescending { it.startDate })
@@ -71,8 +70,17 @@ fun TripListScreen(
 
     val tripsToDisplay = if (selectedTab == "Upcoming") upcomingTrips else pastTrips
 
-    Scaffold(
-        topBar = {
+    // The Scaffold and FAB are now in MainActivity, so they are removed from this screen.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFF0f172a), Color(0xFF334155))
+                )
+            )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             TopAppBar(
                 title = { Text("My Trips") },
                 actions = {
@@ -86,46 +94,26 @@ fun TripListScreen(
                     actionIconContentColor = Color.White
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToCreateTrip) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Trip")
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color(0xFF0f172a), Color(0xFF334155))
-                    )
-                )
-                .padding(paddingValues)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Display Current Trip if it exists
-                currentTrip?.let {
-                    Text("Current Trip", style = MaterialTheme.typography.headlineSmall, color = Color.White)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TripCard(trip = it, onClick = { onNavigateToLiveTrip(it.id) }) // Navigate to live dashboard
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
 
-                TabRow(
-                    selectedTabIndex = if (selectedTab == "Upcoming") 0 else 1,
-                    containerColor = Color.Black.copy(alpha = 0.2f),
-                    modifier = Modifier.clip(CircleShape)
-                ) {
-                    Tab(selected = selectedTab == "Upcoming", onClick = { selectedTab = "Upcoming" }, text = { Text("Upcoming") })
-                    Tab(selected = selectedTab == "Past", onClick = { selectedTab = "Past" }, text = { Text("Past") })
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(tripsToDisplay) { trip ->
-                        // Standard trips navigate to the regular dashboard
-                        TripCard(trip = trip, onClick = { onNavigateToTripDashboard(trip.id) })
-                    }
+            currentTrip?.let {
+                Text("Current Trip", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                Spacer(modifier = Modifier.height(8.dp))
+                TripCard(trip = it, onClick = { onNavigateToLiveTrip(it.id) })
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            TabRow(
+                selectedTabIndex = if (selectedTab == "Upcoming") 0 else 1,
+                containerColor = Color.Black.copy(alpha = 0.2f),
+                modifier = Modifier.clip(CircleShape)
+            ) {
+                Tab(selected = selectedTab == "Upcoming", onClick = { selectedTab = "Upcoming" }, text = { Text("Upcoming") })
+                Tab(selected = selectedTab == "Past", onClick = { selectedTab = "Past" }, text = { Text("Past") })
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(tripsToDisplay) { trip ->
+                    TripCard(trip = trip, onClick = { onNavigateToTripDashboard(trip.id) })
                 }
             }
         }

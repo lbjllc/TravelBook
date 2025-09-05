@@ -1,31 +1,40 @@
 // AppNavigation.kt
-// UPDATE this file with the new navigation callback for the Live Trip screen.
+// UPDATE this file to remove the onNavigateToCreateTrip parameter from the TripListScreen call.
 
 package com.lbjllc.travelbook.ui.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.lbjllc.travelbook.ui.screens.*
 import com.lbjllc.travelbook.ui.viewmodel.TripViewModel
 
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
+fun AppNavigation(
+    navController: NavHostController,
+    paddingValues: PaddingValues
+) {
     val tripViewModel: TripViewModel = viewModel()
     val trips by tripViewModel.trips.collectAsState()
 
-    NavHost(navController = navController, startDestination = "tripList") {
+    NavHost(
+        navController = navController,
+        startDestination = "tripList",
+        modifier = Modifier.padding(paddingValues)
+    ) {
         composable("tripList") {
             TripListScreen(
                 trips = trips,
-                onNavigateToCreateTrip = { navController.navigate("createTrip/null") },
+                // onNavigateToCreateTrip is removed because the FAB is now global
                 onNavigateToTripDashboard = { tripId -> navController.navigate("tripDashboard/$tripId") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToLiveTrip = { tripId -> navController.navigate("liveTrip/$tripId") }
@@ -38,17 +47,29 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val tripId = backStackEntry.arguments?.getString("tripId")
             val currentTrip = trips.find { it.id == tripId }
-
             currentTrip?.let {
                 LiveTripScreen(
                     trip = it,
+                    tripViewModel = tripViewModel,
                     onBack = { navController.popBackStack() },
-                    onManageTrip = { manageTripId -> navController.navigate("tripDashboard/$manageTripId") } // <-- NEW
+                    onManageTrip = { manageTripId -> navController.navigate("tripDashboard/$manageTripId") },
+                    onNavigateToChat = { context -> navController.navigate("aiChat/$context") }
                 )
             }
         }
 
-        // ... (other routes remain the same) ...
+        composable(
+            "aiChat/{context}",
+            arguments = listOf(navArgument("context") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val context = backStackEntry.arguments?.getString("context") ?: "General"
+            AiChatScreen(
+                context = context,
+                tripViewModel = tripViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(
             route = "createTrip/{tripId}",
             arguments = listOf(navArgument("tripId") {

@@ -1,27 +1,26 @@
 // LiveTripScreen.kt
-// UPDATE this file to implement the Google Maps intent logic.
+// This file is correct, but included to ensure synchronization.
 
 package com.lbjllc.travelbook.ui.screens
 
-
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.lbjllc.travelbook.data.ItineraryItem
 import com.lbjllc.travelbook.data.Trip
 import com.lbjllc.travelbook.ui.common.ItineraryItemCard
+import com.lbjllc.travelbook.ui.viewmodel.TripViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,13 +28,28 @@ import java.util.*
 @Composable
 fun LiveTripScreen(
     trip: Trip,
+    tripViewModel: TripViewModel,
     onBack: () -> Unit,
-    onManageTrip: (String) -> Unit
+    onManageTrip: (String) -> Unit,
+    onNavigateToChat: (String) -> Unit
 ) {
     val todayFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val todayStr = todayFormatter.format(Date())
     val groupedItinerary = trip.itinerary.groupBy { it.date }.toSortedMap()
-    val context = LocalContext.current // <-- NEW: Get context for launching intent
+    var showNotesDialog by remember { mutableStateOf(false) }
+    var selectedItemForNotes by remember { mutableStateOf<ItineraryItem?>(null) }
+
+    if (showNotesDialog && selectedItemForNotes != null) {
+        AddNoteDialog(
+            item = selectedItemForNotes!!,
+            onDismiss = { showNotesDialog = false },
+            onSave = { notes ->
+                val updatedItem = selectedItemForNotes!!.copy(notes = notes)
+                tripViewModel.updateItineraryItem(trip.id, selectedItemForNotes!!, updatedItem)
+                showNotesDialog = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -52,10 +66,18 @@ fun LiveTripScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { onNavigateToChat("liveTrip") }) {
+                Icon(Icons.Default.Chat, contentDescription = "AI Assistant")
+            }
         }
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
@@ -94,11 +116,9 @@ fun LiveTripScreen(
                     items(items) { item ->
                         ItineraryItemCard(
                             item = item,
-                            onGetDirections = { // <-- NEW
-                                val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(item.title)}")
-                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                                mapIntent.setPackage("com.google.android.apps.maps")
-                                context.startActivity(mapIntent)
+                            onAddNote = {
+                                selectedItemForNotes = item
+                                showNotesDialog = true
                             }
                         )
                     }

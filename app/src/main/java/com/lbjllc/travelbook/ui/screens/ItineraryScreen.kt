@@ -1,10 +1,8 @@
 // ItineraryScreen.kt
-// UPDATE this file to implement the Google Maps intent logic.
+// UPDATE this file to add the missing Dialog composables.
 
 package com.lbjllc.travelbook.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.lbjllc.travelbook.data.ItineraryItem
 import com.lbjllc.travelbook.data.Trip
@@ -34,9 +31,34 @@ fun ItineraryScreen(
     var showNotesDialog by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf("") }
     var selectedItemForNotes by remember { mutableStateOf<ItineraryItem?>(null) }
-    val context = LocalContext.current // <-- NEW: Get context for launching intent
 
-    // ... (dialogs remain the same) ...
+    if (showCustomItemDialog) {
+        AddCustomItemDialog(
+            onDismiss = { showCustomItemDialog = false },
+            onSave = { title, reason ->
+                val newItem = ItineraryItem(
+                    date = selectedDate,
+                    title = title,
+                    reason = reason,
+                    type = "Custom"
+                )
+                tripViewModel.addItineraryItem(trip.id, newItem)
+                showCustomItemDialog = false
+            }
+        )
+    }
+
+    if (showNotesDialog && selectedItemForNotes != null) {
+        AddNoteDialog(
+            item = selectedItemForNotes!!,
+            onDismiss = { showNotesDialog = false },
+            onSave = { notes ->
+                val updatedItem = selectedItemForNotes!!.copy(notes = notes)
+                tripViewModel.updateItineraryItem(trip.id, selectedItemForNotes!!, updatedItem)
+                showNotesDialog = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -81,12 +103,6 @@ fun ItineraryScreen(
                             onAddNote = {
                                 selectedItemForNotes = item
                                 showNotesDialog = true
-                            },
-                            onGetDirections = { // <-- NEW
-                                val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(item.title)}")
-                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                                mapIntent.setPackage("com.google.android.apps.maps")
-                                context.startActivity(mapIntent)
                             }
                         )
                     }
