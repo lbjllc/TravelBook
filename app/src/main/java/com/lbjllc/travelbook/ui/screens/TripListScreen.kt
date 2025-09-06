@@ -1,5 +1,5 @@
 // TripListScreen.kt
-// UPDATE this file to remove the outdated parameter and Scaffold.
+// This file includes its own Scaffold and the "Add Trip" button.
 
 package com.lbjllc.travelbook.ui.screens
 
@@ -11,8 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +30,7 @@ import java.util.*
 @Composable
 fun TripListScreen(
     trips: List<Trip>,
-    // onNavigateToCreateTrip is removed
+    onNavigateToCreateTrip: () -> Unit,
     onNavigateToTripDashboard: (String) -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToLiveTrip: (String) -> Unit
@@ -40,9 +39,9 @@ fun TripListScreen(
 
     val (currentTrip, upcomingTrips, pastTrips) = remember(trips) {
         val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val todayCalendar = Calendar.getInstance()
-        todayCalendar.set(Calendar.HOUR_OF_DAY, 0); todayCalendar.set(Calendar.MINUTE, 0); todayCalendar.set(Calendar.SECOND, 0); todayCalendar.set(Calendar.MILLISECOND, 0)
-        val today = todayCalendar.time
+        val today = Calendar.getInstance()
+        today.set(Calendar.HOUR_OF_DAY, 0); today.set(Calendar.MINUTE, 0); today.set(Calendar.SECOND, 0); today.set(Calendar.MILLISECOND, 0)
+        val todayDate = today.time
 
         var current: Trip? = null
         val upcoming = mutableListOf<Trip>()
@@ -53,16 +52,16 @@ fun TripListScreen(
                 val startDate = formatter.parse(trip.startDate)
                 val endDate = formatter.parse(trip.endDate)
                 if (startDate != null && endDate != null) {
-                    if (today in startDate..endDate) {
+                    if (todayDate in startDate..endDate) {
                         current = trip
-                    } else if (startDate.after(today)) {
+                    } else if (startDate.after(todayDate)) {
                         upcoming.add(trip)
                     } else {
                         past.add(trip)
                     }
                 }
             } catch (e: Exception) {
-                upcoming.add(trip)
+                upcoming.add(trip) // Default to upcoming if date is malformed
             }
         }
         Triple(current, upcoming.sortedBy { it.startDate }, past.sortedByDescending { it.startDate })
@@ -70,17 +69,8 @@ fun TripListScreen(
 
     val tripsToDisplay = if (selectedTab == "Upcoming") upcomingTrips else pastTrips
 
-    // The Scaffold and FAB are now in MainActivity, so they are removed from this screen.
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0f172a), Color(0xFF334155))
-                )
-            )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    Scaffold(
+        topBar = {
             TopAppBar(
                 title = { Text("My Trips") },
                 actions = {
@@ -94,26 +84,45 @@ fun TripListScreen(
                     actionIconContentColor = Color.White
                 )
             )
-
-            currentTrip?.let {
-                Text("Current Trip", style = MaterialTheme.typography.headlineSmall, color = Color.White)
-                Spacer(modifier = Modifier.height(8.dp))
-                TripCard(trip = it, onClick = { onNavigateToLiveTrip(it.id) })
-                Spacer(modifier = Modifier.height(24.dp))
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onNavigateToCreateTrip) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Trip")
             }
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0xFF0f172a), Color(0xFF334155))
+                    )
+                )
+                .padding(paddingValues)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
 
-            TabRow(
-                selectedTabIndex = if (selectedTab == "Upcoming") 0 else 1,
-                containerColor = Color.Black.copy(alpha = 0.2f),
-                modifier = Modifier.clip(CircleShape)
-            ) {
-                Tab(selected = selectedTab == "Upcoming", onClick = { selectedTab = "Upcoming" }, text = { Text("Upcoming") })
-                Tab(selected = selectedTab == "Past", onClick = { selectedTab = "Past" }, text = { Text("Past") })
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(tripsToDisplay) { trip ->
-                    TripCard(trip = trip, onClick = { onNavigateToTripDashboard(trip.id) })
+                currentTrip?.let {
+                    Text("Current Trip", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TripCard(trip = it, onClick = { onNavigateToLiveTrip(it.id) })
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                TabRow(
+                    selectedTabIndex = if (selectedTab == "Upcoming") 0 else 1,
+                    containerColor = Color.Black.copy(alpha = 0.2f),
+                    modifier = Modifier.clip(CircleShape)
+                ) {
+                    Tab(selected = selectedTab == "Upcoming", onClick = { selectedTab = "Upcoming" }, text = { Text("Upcoming") })
+                    Tab(selected = selectedTab == "Past", onClick = { selectedTab = "Past" }, text = { Text("Past") })
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(tripsToDisplay) { trip ->
+                        TripCard(trip = trip, onClick = { onNavigateToTripDashboard(trip.id) })
+                    }
                 }
             }
         }

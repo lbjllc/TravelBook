@@ -1,14 +1,11 @@
 // AppNavigation.kt
-// UPDATE this file to remove the onNavigateToCreateTrip parameter from the TripListScreen call.
+// This file has the correct routes and parameters for the stable version.
 
 package com.lbjllc.travelbook.ui.navigation
 
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -20,21 +17,19 @@ import com.lbjllc.travelbook.ui.viewmodel.TripViewModel
 
 @Composable
 fun AppNavigation(
-    navController: NavHostController,
-    paddingValues: PaddingValues
+    navController: NavHostController
 ) {
     val tripViewModel: TripViewModel = viewModel()
     val trips by tripViewModel.trips.collectAsState()
 
     NavHost(
         navController = navController,
-        startDestination = "tripList",
-        modifier = Modifier.padding(paddingValues)
+        startDestination = "tripList"
     ) {
         composable("tripList") {
             TripListScreen(
                 trips = trips,
-                // onNavigateToCreateTrip is removed because the FAB is now global
+                onNavigateToCreateTrip = { navController.navigate("createTrip/null") },
                 onNavigateToTripDashboard = { tripId -> navController.navigate("tripDashboard/$tripId") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToLiveTrip = { tripId -> navController.navigate("liveTrip/$tripId") }
